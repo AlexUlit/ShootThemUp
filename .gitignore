@@ -74,3 +74,6 @@ Plugins/*/Intermediate/*
 
 # Rider link have to be generate in local project
 Plugins/*Developer/*RiderLink/*
+
+# Build link have to be generate in local project
+Build/*

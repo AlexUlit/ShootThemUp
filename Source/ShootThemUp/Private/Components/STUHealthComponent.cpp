@@ -63,6 +63,7 @@ void USTUHealthComponent::SetHealth(float NewValue)
 {
 	Health = FMath::Clamp(NewValue, 0.0f ,MaxHealth);
 	OnHealthChanged.Broadcast(Health);
+	
 }
 
 
