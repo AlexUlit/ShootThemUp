@@ -1,0 +1,131 @@
+// Shoot Them Up Game, All Rights Reserved
+
+
+#include "Player/STUBaseCharacter.h"
+
+#include "Components/STUCharacterMovementComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogBaseCharacter, All, All)
+
+// Sets default values
+ASTUBaseCharacter::ASTUBaseCharacter(const FObjectInitializer &ObjInit):
+	Super(ObjInit.SetDefaultSubobjectClass<USTUCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
+
+{
+ 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+	
+	MySpringArmComponent = CreateDefaultSubobject<USpringArmComponent>("FuckingSpringArmComponent");
+	MySpringArmComponent->SetupAttachment(GetRootComponent());
+	MySpringArmComponent->bUsePawnControlRotation = true;
+
+	MyCameraComponent = CreateDefaultSubobject<UCameraComponent>("CameraComponent");
+	MyCameraComponent->SetupAttachment(MySpringArmComponent);
+
+	HealthComponent = CreateDefaultSubobject<USTUHealthComponent>("HealthComponent");
+	
+	HealthTextComponent = CreateDefaultSubobject<UTextRenderComponent>("HealthAmount");
+	HealthTextComponent->SetupAttachment(GetRootComponent());
+
+	
+}
+
+// Called when the game starts or when spawned
+void ASTUBaseCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	check(HealthComponent);
+	check(HealthTextComponent);
+	check(GetCharacterMovement())
+	HealthComponent->OnDeath.AddUObject(this, &ASTUBaseCharacter::OnPlayerDead);
+	HealthComponent->OnHealthChanged.AddUObject(this, &ASTUBaseCharacter::CharacterHealthChanged);
+	LandedDelegate.AddDynamic(this, &ASTUBaseCharacter::OnMyGrounded);
+}
+
+
+
+
+void ASTUBaseCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	const auto Health = HealthComponent->getHealth();
+	HealthTextComponent->SetText(FText::FromString(FString::Printf(TEXT("%.0f"), Health)));
+	
+}
+
+// Called to bind functionality to input
+void ASTUBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	InputComponent->BindAxis("MoveForward",this, &ASTUBaseCharacter::MoveForward);
+	InputComponent->BindAxis("MoveRight",this, &ASTUBaseCharacter::MoveRight);
+	InputComponent->BindAxis("LookUp", this, &ASTUBaseCharacter::AddControllerPitchInput);
+	InputComponent->BindAxis("LookAround", this, &ASTUBaseCharacter::AddControllerYawInput);
+	InputComponent->BindAction("ABJump",IE_Pressed,this, &ASTUBaseCharacter::Jump);
+	InputComponent->BindAction("ABSprint", IE_Pressed, this, &ASTUBaseCharacter::OnStartSprint);
+	InputComponent->BindAction("ABSprint", IE_Released, this, &ASTUBaseCharacter::OnStopSprint);
+}
+
+bool ASTUBaseCharacter::IsRunning() const
+{
+	return WantsToRun&&IsMovingForward&&!GetVelocity().IsZero();
+}
+
+float ASTUBaseCharacter::GetMovementDirection() const
+{
+	if(GetVelocity().IsZero()) return 0.0f;
+	const auto VelocityNormal = GetVelocity().GetSafeNormal();
+	const auto AngleBetween = FMath::Acos(FVector::DotProduct(GetActorForwardVector(), VelocityNormal));
+	const auto CrossProduct = FVector::CrossProduct(GetActorForwardVector(), VelocityNormal);
+	const auto Degrees = FMath::RadiansToDegrees(AngleBetween);
+	return CrossProduct.IsZero() ? Degrees: Degrees*FMath::Sign(CrossProduct.Z);
+}
+
+void ASTUBaseCharacter::MoveForward(float Amount)
+{
+	IsMovingForward = Amount>0.0f;
+	if (Amount == 0.0f) return;
+	AddMovementInput(GetActorForwardVector(),Amount);
+}
+
+void ASTUBaseCharacter::MoveRight(float Amount)
+{
+	if (Amount == 0.0f) return;
+	AddMovementInput(GetActorRightVector(), Amount);
+}
+
+void ASTUBaseCharacter::OnStartSprint()
+{
+	WantsToRun = true;
+}
+
+void ASTUBaseCharacter::OnStopSprint()
+{
+	WantsToRun = false;
+}
+
+void ASTUBaseCharacter::OnPlayerDead()
+{
+	UE_LOG(LogBaseCharacter, Error, TEXT("Player %s is Dead"), *GetName());
+	PlayAnimMontage(DeathAnimMontage);
+	GetCharacterMovement()->DisableMovement();
+	SetLifeSpan(5.0f);
+	if (Controller)
+	{
+		Controller->ChangeState(NAME_Spectating);
+	}
+}
+
+void ASTUBaseCharacter::CharacterHealthChanged(float Health)
+{
+	HealthTextComponent->SetText(FText::FromString(FString::Printf(TEXT("%.0f"), Health)));
+}
+
+void ASTUBaseCharacter::OnMyGrounded(const FHitResult& Hit)
+{
+d	const auto FallVelocityZ = GetCharacterMovement()->Velocity.Z;
+	UE_LOG(LogBaseCharacter, Display, TEXT ("On landed: %f"), FallVelocityZ);
+}
