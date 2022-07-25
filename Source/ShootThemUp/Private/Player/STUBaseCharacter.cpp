@@ -5,6 +5,7 @@
 
 #include "Components/STUCharacterMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Weapon/STUBaseWeapon.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBaseCharacter, All, All)
 
@@ -35,13 +36,15 @@ ASTUBaseCharacter::ASTUBaseCharacter(const FObjectInitializer &ObjInit):
 void ASTUBaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	check(HealthComponent);
 	check(HealthTextComponent);
 	check(GetCharacterMovement())
 	HealthComponent->OnDeath.AddUObject(this, &ASTUBaseCharacter::OnPlayerDead);
 	HealthComponent->OnHealthChanged.AddUObject(this, &ASTUBaseCharacter::CharacterHealthChanged);
 	LandedDelegate.AddDynamic(this, &ASTUBaseCharacter::OnMyGrounded);
+
+	SpawnWeapon();
 }
 
 
@@ -133,4 +136,19 @@ void ASTUBaseCharacter::OnMyGrounded(const FHitResult& Hit)
 		FallVelocityZ);
 	UE_LOG(LogBaseCharacter, Display, TEXT ("On landed damage is: %f"), FinalDamage);
 	TakeDamage(FinalDamage,FDamageEvent{},nullptr,nullptr);
+}
+
+void ASTUBaseCharacter::SpawnWeapon()
+{
+	if(!GetWorld())
+	{
+		return;
+	}
+	
+	ASTUBaseWeapon *Weapon = GetWorld()->SpawnActor<ASTUBaseWeapon>(WeaponClass);
+	if (Weapon)
+	{
+		FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget,false);
+		Weapon->AttachToComponent(GetMesh(), AttachmentRules, "WeaponSocket");
+	}
 }
