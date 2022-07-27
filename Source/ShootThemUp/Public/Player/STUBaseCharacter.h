@@ -3,14 +3,14 @@
 #pragma once
 
 #include "Camera/CameraComponent.h"
-#include "Components/STUHealthComponent.h"
-#include "Components/TextRenderComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "STUBaseCharacter.generated.h"
 
-class ASTUBaseWeapon;
-
+class USTUWeaponComponent;
+class USTUHealthComponent;
+class UTextRenderComponent;
+class UCameraComponent;
 
 UCLASS()
 class SHOOTTHEMUP_API ASTUBaseCharacter : public ACharacter
@@ -31,16 +31,19 @@ protected:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(VisibleAnywhere,BlueprintReadWrite,Category ="Components")
-	USpringArmComponent *MySpringArmComponent;
+	USpringArmComponent* MySpringArmComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
-	USTUHealthComponent *HealthComponent;
+	USTUHealthComponent* HealthComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
-	UTextRenderComponent *HealthTextComponent;
+	UTextRenderComponent* HealthTextComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
+	USTUWeaponComponent* WeaponComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Animations")
-	UAnimMontage *DeathAnimMontage;
+	UAnimMontage* DeathAnimMontage;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Damage")
 	float LifeSpanOnDeath = 5.0f;
@@ -50,9 +53,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Damage")
 	FVector2D LandedDamage = FVector2D(10.0f, 100.0f);
-
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-	TSubclassOf<ASTUBaseWeapon> WeaponClass;
+	
 
 	virtual void BeginPlay() override;
 
@@ -81,7 +82,6 @@ private:
 
 	UFUNCTION()
 	void OnMyGrounded(const FHitResult& Hit);
-	void SpawnWeapon();
 };
 
 
